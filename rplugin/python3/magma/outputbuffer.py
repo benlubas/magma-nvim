@@ -64,7 +64,7 @@ class OutputBuffer:
         return f"{old}Out[{execution_count}]: {status}"
 
     def enter(self) -> None:
-        if self.display_window is not None:  # TODO open window if is None?
+        if self.display_window is not None:
             self.nvim.funcs.nvim_set_current_win(self.display_window)
 
     def clear_interface(self) -> None:
@@ -73,7 +73,15 @@ class OutputBuffer:
             self.display_window = None
 
     def show(self, anchor: Position) -> None:  # XXX .show_outputs(_, anchor)
-        # FIXME use `anchor.buffer`, Not `self.nvim.current.window`
+        """ Show the output of the current cell in a floating window
+        If the window is already open, move into the window
+        """
+        if self.display_window is not None:
+            self.nvim.funcs.nvim_set_current_win(self.display_window)
+            return
+
+        # FIXME: use `anchor.buffer`, Not `self.nvim.current.window`
+        # currently anchor.buffer doesn't exist. Needs to be added
 
         # Get width&height, etc
         win_col = self.nvim.current.window.col

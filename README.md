@@ -164,6 +164,9 @@ Example usage (after having selected some text):
 :MagmaEvaluateVisual
 ```
 
+> Note that you cannot run this command with a range so this `:'<,'>MagmaEvaulateVisual` _will_
+> error
+
 #### MagmaEvaluateOperator
 
 Evaluate the text given by some operator.
@@ -206,7 +209,8 @@ Example usage:
 
 This only makes sense when you have `g:magma_automatically_open_output = v:false`. See [Customization](#customization).
 
-Running this command with some active cell will open the output window.
+- Running this command with some active cell will open the output window.
+- Running this command with an open output window will enter the output window.
 
 Example usage:
 

@@ -63,25 +63,13 @@ class Magma:
 
     def _set_autocommands(self) -> None:
         self.nvim.command("augroup magma")
-        self.nvim.command(
-            "  autocmd CursorMoved  * call MagmaUpdateInterface()"
-        )
-        self.nvim.command(
-            "  autocmd CursorMovedI * call MagmaUpdateInterface()"
-        )
-        self.nvim.command(
-            "  autocmd WinScrolled  * call MagmaUpdateInterface()"
-        )
-        self.nvim.command(
-            "  autocmd BufEnter     * call MagmaUpdateInterface()"
-        )
-        self.nvim.command(
-            "  autocmd BufLeave     * call MagmaClearInterface()"
-        )
-        self.nvim.command(
-            "  autocmd BufUnload    * call MagmaOnBufferUnload()"
-        )
-        self.nvim.command("  autocmd ExitPre      * call MagmaOnExitPre()")
+        self.nvim.command("autocmd CursorMoved  * call MagmaUpdateInterface()")
+        self.nvim.command("autocmd CursorMovedI * call MagmaUpdateInterface()")
+        self.nvim.command("autocmd WinScrolled  * call MagmaUpdateInterface()")
+        self.nvim.command("autocmd BufEnter     * call MagmaUpdateInterface()")
+        self.nvim.command("autocmd BufLeave     * call MagmaClearInterface()")
+        self.nvim.command("autocmd BufUnload    * call MagmaOnBufferUnload()")
+        self.nvim.command("autocmd ExitPre      * call MagmaOnExitPre()")
         self.nvim.command("augroup END")
 
     def _deinitialize(self) -> None:
@@ -152,7 +140,7 @@ class Magma:
 
         return magma
 
-    @pynvim.command("MagmaInit", nargs="?", sync=True, complete='file')  # type: ignore
+    @pynvim.command("MagmaInit", nargs="?", sync=True, complete="file")  # type: ignore
     @nvimui  # type: ignore
     def command_init(self, args: List[str]) -> None:
         self._initialize_if_necessary()
@@ -487,6 +475,10 @@ class Magma:
             DynamicPosition(
                 self.nvim, self.extmark_namespace, bufno, start - 1, 0
             ),
-            DynamicPosition(self.nvim, self.extmark_namespace, bufno, end - 1, -1),
+            DynamicPosition(
+                self.nvim, self.extmark_namespace, bufno, end - 1, -1
+            ),
         )
-        magma.outputs[span] = OutputBuffer(self.nvim, self.canvas, self.options)
+        magma.outputs[span] = OutputBuffer(
+            self.nvim, self.canvas, self.options
+        )
