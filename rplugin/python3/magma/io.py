@@ -87,6 +87,7 @@ def load(magmabuffer: MagmaBuffer, data: Dict[str, Any]) -> None:
                     magmabuffer.runtime._alloc_file,
                     chunk["data"],
                     chunk["metadata"],
+                    {}
                 )
             )
 

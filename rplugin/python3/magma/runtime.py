@@ -6,6 +6,8 @@ import os
 import tempfile
 import json
 
+from pynvim import Nvim
+
 import jupyter_client
 
 from magma.options import MagmaOptions
@@ -16,7 +18,7 @@ from magma.outputchunks import (
     TextOutputChunk,
     OutputStatus,
     to_outputchunk,
-    clean_up_text
+    clean_up_text,
 )
 
 
@@ -36,13 +38,14 @@ class JupyterRuntime:
     allocated_files: List[str]
 
     options: MagmaOptions
+    nvim: Nvim
 
-    def __init__(self, kernel_name: str, options: MagmaOptions):
+    def __init__(self, kernel_name: str, options: MagmaOptions, nvim: Nvim):
         self.state = RuntimeState.STARTING
         self.kernel_name = kernel_name
+        self.nvim = nvim
 
         if ".json" not in self.kernel_name:
-
             self.external_kernel = True
             self.kernel_manager = jupyter_client.manager.KernelManager(
                 kernel_name=kernel_name
@@ -66,11 +69,13 @@ class JupyterRuntime:
             kernel_json = json.load(open(kernel_file))
             # we have a kernel json
             self.kernel_manager = jupyter_client.manager.KernelManager(
-                    kernel_name=kernel_json["kernel_name"]
-                    )
+                kernel_name=kernel_json["kernel_name"]
+            )
             self.kernel_client = self.kernel_manager.client()
 
-            self.kernel_client.load_connection_file(connection_file=kernel_file)
+            self.kernel_client.load_connection_file(
+                connection_file=kernel_file
+            )
 
             self.allocated_files = []
 
@@ -97,6 +102,15 @@ class JupyterRuntime:
     def run_code(self, code: str) -> None:
         self.kernel_client.execute(code)
 
+    def run_magic(self, code: str) -> None:
+        """ Used to run magic commands like %whos which give the plugin information. Code run by
+        this function should not be processed normally by the rest of the plugin, or shown to the
+        user.
+        """
+        # how do we detect this result if some other thing is running at the same time? What if the
+        # user runs a %who command at the same time as this? is there any way to differentiate?
+        self.kernel_client.execute(code)
+
     @contextmanager
     def _alloc_file(
         self, extension: str, mode: str
@@ -119,10 +133,10 @@ class JupyterRuntime:
     def _tick_one(
         self, output: Output, message_type: str, content: Dict[str, Any]
     ) -> bool:
-
         def copy_on_demand(content_ctor):
             if self.options.copy_output:
                 import pyperclip
+
                 if type(content_ctor) is str:
                     pyperclip.copy(content_ctor)
                 else:
@@ -161,9 +175,12 @@ class JupyterRuntime:
             # This doesn't really give us any relevant information.
             return False
         elif message_type == "execute_result":
+            self.nvim.out_write("execute_result\n")
+            self.nvim.out_write(f"content: {content}")
+            self.nvim.out_write(f"output: {output}")
             self._append_chunk(output, content["data"], content["metadata"])
-            if 'text/plain' in content['data']:
-                copy_on_demand(content["data"]['text/plain'])
+            if "text/plain" in content["data"]:
+                copy_on_demand(content["data"]["text/plain"])
             return True
         elif message_type == "error":
             output.chunks.append(
@@ -171,7 +188,9 @@ class JupyterRuntime:
                     content["ename"], content["evalue"], content["traceback"]
                 )
             )
-            copy_on_demand(lambda: "\n\n".join(map(clean_up_text, content["traceback"])))
+            copy_on_demand(
+                lambda: "\n\n".join(map(clean_up_text, content["traceback"]))
+            )
             output.success = False
             return True
         elif message_type == "stream":
@@ -181,10 +200,12 @@ class JupyterRuntime:
         elif message_type == "display_data":
             # XXX: consider content['transient'], if we end up saving execution
             # outputs.
+            self.nvim.out_write("display_data\n")
             self._append_chunk(output, content["data"], content["metadata"])
             return True
         elif message_type == "update_display_data":
             # We don't really want to bother with this type of message.
+            # TODO: maybe we should?
             return False
         elif message_type == "clear_output":
             if content["wait"]:
@@ -218,6 +239,7 @@ class JupyterRuntime:
         while True:
             try:
                 message = self.kernel_client.get_iopub_msg(timeout=0)
+                self.nvim.out_write(f"message: {message}\n")
 
                 if "content" not in message or "msg_type" not in message:
                     continue
@@ -233,6 +255,12 @@ class JupyterRuntime:
                 break
 
         return did_stuff
+
+    def request_variable_data(self) -> None:
+        """make a request to the jupyter kernel for variable data"""
+        # self.kernel_client.
+        pass
+        
 
 
 def get_available_kernels() -> List[str]:

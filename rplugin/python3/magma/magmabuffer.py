@@ -51,7 +51,8 @@ class MagmaBuffer:
 
         self._doautocmd("MagmaInitPre")
 
-        self.runtime = JupyterRuntime(kernel_name, options)
+        self.runtime = JupyterRuntime(kernel_name, options, nvim)
+        self.nvim.out_write(f"{dir(self.runtime.kernel_client.control_channel)}\n")
 
         self.outputs = {}
         self.current_output = None
