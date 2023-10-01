@@ -57,6 +57,9 @@ class MagmaBuffer:
         self.nvim.out_write(f"{dir(self.runtime.kernel_client.control_channel)}\n")
 
         self.variable_explorer = VariableExplorer(nvim, self.runtime, options)
+        def on_execute_result():
+            self.variable_explorer.refresh()
+        self.runtime.on_execute_result = on_execute_result
 
         self.outputs = {}
         self.current_output = None

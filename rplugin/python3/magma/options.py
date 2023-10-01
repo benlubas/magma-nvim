@@ -13,7 +13,9 @@ class MagmaOptions:
     image_provider: str
     copy_output: bool
     enter_output_behavior: str
-    var_exp_width: int
+    var_expl_width: int
+    var_expl_auto_update: bool
+    var_expl_changed_highlight: str
 
     def __init__(self, nvim: Nvim):
         # fmt: off
@@ -27,7 +29,9 @@ class MagmaOptions:
             ("magma_image_provider", "none"),
             ("magma_copy_output", False),
             ("magma_enter_output_behavior", "open_then_enter"), # "open_then_enter", "open_and_enter", or "no_open"
-            ("magma_var_exp_width", 50),
+            ("magma_var_expl_width", 50),
+            ("magma_var_expl_auto_update", True),
+            ("magma_var_expl_changed_highlight", "DiffAdd"),
         ]
         # fmt: on
 

@@ -44,13 +44,16 @@ class JupyterRuntime:
     options: MagmaOptions
     nvim: Nvim
 
-    def __init__(self, kernel_name: str, options: MagmaOptions, nvim: Nvim):
+    on_execute_result: Any
+
+    def __init__(self, kernel_name: str, options: MagmaOptions, nvim: Nvim, on_execute_result=None):
         self.state = RuntimeState.STARTING
         self.kernel_name = kernel_name
         self.nvim = nvim
         self.magic_execution_number = None
         self.waiting_for_magic = None
         self.magic_execution_callback = None
+        self.on_execute_result = on_execute_result
 
         if ".json" not in self.kernel_name:
             self.external_kernel = True
@@ -198,6 +201,8 @@ class JupyterRuntime:
             self._append_chunk(output, content["data"], content["metadata"])
             if "text/plain" in content["data"]:
                 copy_on_demand(content["data"]["text/plain"])
+
+            if self.on_execute_result: self.on_execute_result()
             return True
         elif message_type == "error":
             output.chunks.append(
@@ -225,6 +230,7 @@ class JupyterRuntime:
             # XXX: consider content['transient'], if we end up saving execution
             # outputs.
             self._append_chunk(output, content["data"], content["metadata"])
+            if self.on_execute_result: self.on_execute_result()
             return True
         elif message_type == "update_display_data":
             # We don't really want to bother with this type of message.
