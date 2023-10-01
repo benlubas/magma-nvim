@@ -7,6 +7,12 @@ class MagmaException(Exception):
     pass
 
 
+def set_win_options(nvim: Nvim, win: int, options: dict) -> None:
+    """ Bulk set options on a given window """
+    for key, value in options.items():
+        nvim.api.set_option_value(key, value, {"scope": "local", "win": win})
+
+
 def nvimui(func):  # type: ignore
     def inner(self, *args, **kwargs):  # type: ignore
         try:

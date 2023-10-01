@@ -303,6 +303,16 @@ class Magma:
 
         magma.reevaluate_cell()
 
+    @pynvim.command("MagmaOpenVariableExplorer", nargs=0, sync=True)  # type: ignore
+    @nvimui  # type: ignore
+    def command_open_variable_explorer(self) -> None:
+        self._initialize_if_necessary()
+
+        magma = self._get_magma(True)
+        assert magma is not None
+
+        magma.variable_explorer.display()
+
     @pynvim.command("MagmaInterrupt", nargs=0, sync=True)  # type: ignore
     @nvimui  # type: ignore
     def command_interrupt(self) -> None:

@@ -35,6 +35,10 @@ class JupyterRuntime:
     kernel_manager: jupyter_client.KernelManager
     kernel_client: jupyter_client.KernelClient
 
+    magic_execution_number: Optional[int]
+    waiting_for_magic: Optional[str]
+    magic_execution_callback: Optional[Any]
+
     allocated_files: List[str]
 
     options: MagmaOptions
@@ -44,6 +48,9 @@ class JupyterRuntime:
         self.state = RuntimeState.STARTING
         self.kernel_name = kernel_name
         self.nvim = nvim
+        self.magic_execution_number = None
+        self.waiting_for_magic = None
+        self.magic_execution_callback = None
 
         if ".json" not in self.kernel_name:
             self.external_kernel = True
@@ -102,13 +109,18 @@ class JupyterRuntime:
     def run_code(self, code: str) -> None:
         self.kernel_client.execute(code)
 
-    def run_magic(self, code: str) -> None:
+    def run_magic(self, code: str, callback) -> None:
         """ Used to run magic commands like %whos which give the plugin information. Code run by
         this function should not be processed normally by the rest of the plugin, or shown to the
         user.
         """
-        # how do we detect this result if some other thing is running at the same time? What if the
-        # user runs a %who command at the same time as this? is there any way to differentiate?
+        if self.waiting_for_magic or self.magic_execution_number is not None:
+            return
+
+        self.nvim.out_write(f"running magic: {code}\n")
+        self.magic_execution_number = None
+        self.waiting_for_magic = code
+        self.magic_execution_callback = callback
         self.kernel_client.execute(code)
 
     @contextmanager
@@ -147,7 +159,15 @@ class JupyterRuntime:
             output._should_clear = False
 
         if message_type == "execute_input":
+            if self.waiting_for_magic == content["code"] and self.magic_execution_number is None:
+                self.nvim.out_write("in here\n")
+                self.magic_execution_number = content["execution_count"]
+                self.waiting_for_magic = None
+                self.nvim.out_write(f"magic execution number: {self.magic_execution_number}\n")
+                return False
+
             output.execution_count = content["execution_count"]
+
             if self.external_kernel is False:
                 assert output.status != OutputStatus.DONE
                 if output.status == OutputStatus.HOLD:
@@ -175,9 +195,6 @@ class JupyterRuntime:
             # This doesn't really give us any relevant information.
             return False
         elif message_type == "execute_result":
-            self.nvim.out_write("execute_result\n")
-            self.nvim.out_write(f"content: {content}")
-            self.nvim.out_write(f"output: {output}")
             self._append_chunk(output, content["data"], content["metadata"])
             if "text/plain" in content["data"]:
                 copy_on_demand(content["data"]["text/plain"])
@@ -194,13 +211,19 @@ class JupyterRuntime:
             output.success = False
             return True
         elif message_type == "stream":
+            if self.magic_execution_number is not None and content["name"] == "stdout":
+                self.magic_execution_number = None
+                fn = self.magic_execution_callback
+                self.magic_execution_callback = None
+                if fn: fn(content)
+                return False
+
             copy_on_demand(content["text"])
             output.chunks.append(TextOutputChunk(content["text"]))
             return True
         elif message_type == "display_data":
             # XXX: consider content['transient'], if we end up saving execution
             # outputs.
-            self.nvim.out_write("display_data\n")
             self._append_chunk(output, content["data"], content["metadata"])
             return True
         elif message_type == "update_display_data":
@@ -234,12 +257,12 @@ class JupyterRuntime:
                 return False
 
         if output is None:
+            self.nvim.out_write("output is none\n")
             return did_stuff
 
         while True:
             try:
                 message = self.kernel_client.get_iopub_msg(timeout=0)
-                self.nvim.out_write(f"message: {message}\n")
 
                 if "content" not in message or "msg_type" not in message:
                     continue

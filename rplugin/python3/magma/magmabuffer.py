@@ -1,6 +1,7 @@
 from typing import Optional, Dict
 from queue import Queue
 import hashlib
+from magma.variable_explorer import VariableExplorer
 
 import pynvim
 from pynvim import Nvim
@@ -22,6 +23,7 @@ class MagmaBuffer:
     buffer: Buffer
 
     runtime: JupyterRuntime
+    variable_explorer: VariableExplorer
 
     outputs: Dict[Span, OutputBuffer]
     current_output: Optional[Span]
@@ -53,6 +55,8 @@ class MagmaBuffer:
 
         self.runtime = JupyterRuntime(kernel_name, options, nvim)
         self.nvim.out_write(f"{dir(self.runtime.kernel_client.control_channel)}\n")
+
+        self.variable_explorer = VariableExplorer(nvim, self.runtime, options)
 
         self.outputs = {}
         self.current_output = None
@@ -128,6 +132,7 @@ class MagmaBuffer:
 
         was_ready = self.runtime.is_ready()
         if self.current_output is None or not self.current_output in self.outputs:
+            self.nvim.out_write("tick without output\n")
             did_stuff = self.runtime.tick(None)
         else:
             did_stuff = self.runtime.tick(
