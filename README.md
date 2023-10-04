@@ -2,24 +2,22 @@
 
 Magma is a NeoVim plugin for running code interactively with Jupyter.
 
-![](https://user-images.githubusercontent.com/15617291/128964224-f157022c-25cd-4a60-a0da-7d1462564ae4.gif)
+![Feature Showcase (gif)](https://user-images.githubusercontent.com/15617291/128964224-f157022c-25cd-4a60-a0da-7d1462564ae4.gif)
 
 ## Requirements
 
-- NeoVim 0.5+
-- Python 3.8+
+- NeoVim 9.0+
+- Python 3.10+
 - Required Python packages:
-    - [`pynvim`](https://github.com/neovim/pynvim) (for the Remote Plugin API)
-    - [`jupyter_client`](https://github.com/jupyter/jupyter_client) (for interacting with Jupyter)
-    - [`ueberzug`](https://github.com/seebye/ueberzug) (for displaying images. Not available on MacOS, but see [#15](https://github.com/dccsillag/magma-nvim/issues/15) for alternatives)
-    - [`Pillow`](https://github.com/python-pillow/Pillow) (also for displaying images, should be installed with `ueberzug`)
-    - [`cairosvg`](https://cairosvg.org/) (for displaying SVG images)
-    - [`pnglatex`](https://pypi.org/project/pnglatex/) (for displaying TeX formulas)
-    - `plotly` and `kaleido` (for displaying Plotly figures)
-    - `pyperclip` if you want to use `magma_copy_output`
+  - [`pynvim`](https://github.com/neovim/pynvim) (for the Remote Plugin API)
+  - [`jupyter_client`](https://github.com/jupyter/jupyter_client) (for interacting with Jupyter)
+  - [`cairosvg`](https://cairosvg.org/) (for displaying SVG images)
+  - [`pnglatex`](https://pypi.org/project/pnglatex/) (for displaying TeX formulas)
+  - `plotly` and `kaleido` (for displaying Plotly figures)
+  - `pyperclip` if you want to use `magma_copy_output`
 - For .NET (C#, F#)
-    - `dotnet tool install -g Microsoft.dotnet-interactive`
-    - `dotnet interactive jupyter install`
+  - `dotnet tool install -g Microsoft.dotnet-interactive`
+  - `dotnet interactive jupyter install`
 
 You can do a `:checkhealth` to see if you are ready to go.
 
@@ -27,72 +25,39 @@ You can do a `:checkhealth` to see if you are ready to go.
 
 ## Installation
 
-Use your favourite package/plugin manager.
+Use your favorite package/plugin manager.
 
-If you use `packer.nvim`,
+<details>
+<summary>Lazy</summary>
 
 ```lua
-use { 'dccsillag/magma-nvim', run = ':UpdateRemotePlugins' }
+{ "dccsillag/magma-nvim", build = ":UpdateRemotePlugins" }
+```
+</details>
+
+<details>
+<summary>Packer</summary>
+
+```lua
+use { "dccsillag/magma-nvim", run = ":UpdateRemotePlugins" }
 ```
 
-If you use `vim-plug`,
+</details>
+
+<details>
+<summary>Plug</summary>
 
 ```vim
 Plug 'dccsillag/magma-nvim', { 'do': ':UpdateRemotePlugins' }
 ```
 
-Note that you will still need to configure keymappings -- see [Keybindings](#keybindings).
+</details>
 
-## Suggested settings
+**Note**: Keybindings are not set by default -- see [Keybindings](#keybindings).
 
-If you want a quickstart, these are the author's suggestions of mappings and options (beware of potential conflicts of these mappings with your own!):
+## Quick-start
 
-```vim
-nnoremap <silent><expr> <LocalLeader>r  :MagmaEvaluateOperator<CR>
-nnoremap <silent>       <LocalLeader>rr :MagmaEvaluateLine<CR>
-xnoremap <silent>       <LocalLeader>r  :<C-u>MagmaEvaluateVisual<CR>
-nnoremap <silent>       <LocalLeader>rc :MagmaReevaluateCell<CR>
-nnoremap <silent>       <LocalLeader>rd :MagmaDelete<CR>
-nnoremap <silent>       <LocalLeader>ro :MagmaShowOutput<CR>
-
-let g:magma_automatically_open_output = v:false
-let g:magma_image_provider = "ueberzug"
-```
-
-**Note:** Key mappings are not defined by default because of potential conflicts -- the user should decide which keys they want to use (if at all).
-
-**Note:** The options that are altered here don't have these as their default values in order to provide a simpler (albeit perhaps a bit more inconvenient) UI for someone who just added the plugin without properly reading the README.
-
-To make initialisation of kernels easier, you can add these commands:
-
-```lua
-function MagmaInitPython()
-    vim.cmd[[
-    :MagmaInit python3
-    :MagmaEvaluateArgument a=5
-    ]]
-end
-
-function MagmaInitCSharp()
-    vim.cmd[[
-    :MagmaInit .net-csharp
-    :MagmaEvaluateArgument Microsoft.DotNet.Interactive.Formatting.Formatter.SetPreferredMimeTypesFor(typeof(System.Object),"text/plain");
-    ]]
-end
-
-function MagmaInitFSharp()
-    vim.cmd[[
-    :MagmaInit .net-fsharp
-    :MagmaEvaluateArgument Microsoft.DotNet.Interactive.Formatting.Formatter.SetPreferredMimeTypesFor(typeof<System.Object>,"text/plain")
-    ]]
-end
-
-vim.cmd[[
-:command MagmaInitPython lua MagmaInitPython()
-:command MagmaInitCSharp lua MagmaInitCSharp()
-:command MagmaInitFSharp lua MagmaInitFSharp()
-]]
-```
+See the [Wiki Quick-start Guide](https://www.github.com/benlubas/magma-nvim/)
 
 ## Usage
 
@@ -100,13 +65,13 @@ The plugin provides a bunch of commands to enable interaction. It is recommended
 
 ### Interface
 
-When you execute some code, it will create a *cell*. You can recognize a cell because it will be highlighted when your cursor is in it.
+When you execute some code, it will create a _cell_. You can recognize a cell because it will be highlighted when your cursor is in it.
 
 A cell is delimited using two extmarks (see `:help api-extended-marks`), so it will adjust to you editing the text within it.
 
-When your cursor is in a cell (i.e., you have an *active cell*), a floating window may be shown below the cell, reporting output. This is the *display window*, or *output window*. (To see more about whether a window is shown or not, see `:MagmaShowOutput` and `g:magma_automatically_open_output`). When you cursor is not in any cell, no cell is active.
+When your cursor is in a cell (i.e., you have an _active cell_), a floating window may be shown below the cell, reporting output. This is the _display window_, or _output window_. (To see more about whether a window is shown or not, see `:MagmaShowOutput` and `g:magma_automatically_open_output`). When you cursor is not in any cell, no cell is active.
 
-Also, the active cell is searched for from newest to oldest. That means that you can have a cell within another cell, and if the one within is newer, then that one will be selected. (Same goes for merely overlapping cells).
+The active cell is chosen from newest to oldest. That means that you can have a cell within another cell, and if the one within is newer, then that one will be selected. (Same goes for merely overlapping cells).
 
 The output window has a header, containing the execution count and execution state (i.e., whether the cell is waiting to be run, running, has finished successfully or has finished with an error). Below the header are shown the outputs.
 
@@ -122,7 +87,7 @@ It can take a single argument, the Jupyter kernel's name. For example,
 
 ```vim
 :MagmaInit python3
-```
+````
 
 will initialize the current buffer with a `python3` kernel.
 
@@ -399,6 +364,7 @@ There is a provided function `MagmaEvaluateRange(start_line, end_line)` which ev
 between the given line numbers (inclusive). This is intended for use in scripts.
 
 ### Example Usage:
+
 ```lua
 vim.fn.MagmaEvaluateRange(1, 23)
 ```
