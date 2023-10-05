@@ -77,206 +77,45 @@ The output window has a header, containing the execution count and execution sta
 
 Jupyter provides a rich set of outputs. To see what we can currently handle, see [Output Chunks](#output-chunks).
 
-### Commands
-
-#### MagmaInit
-
-This command initializes a runtime for the current buffer.
-
-It can take a single argument, the Jupyter kernel's name. For example,
-
-```vim
-:MagmaInit python3
-````
-
-will initialize the current buffer with a `python3` kernel.
-
-It can also be called with no arguments, as such:
-
-```vim
-:MagmaInit
-```
-
-This will prompt you for which kernel you want to launch (from the list of available kernels).
-
-#### MagmaDeinit
-
-This command deinitializes the current buffer's runtime and magma instance.
-
-```vim
-:MagmaDeinit
-```
-
-**Note** You don't need to run this, as deinitialization will happen automatically upon closing Vim or the buffer being unloaded. This command exists in case you just want to make Magma stop running.
-
-#### MagmaEvaluateLine
-
-Evaluate the current line.
-
-Example usage:
-
-```vim
-:MagmaEvaluateLine
-```
-
-#### MagmaEvaluateVisual
-
-Evaluate the selected text.
-
-Example usage (after having selected some text):
-
-```vim
-:MagmaEvaluateVisual
-```
-
-#### MagmaEvaluateOperator
-
-Evaluate the text given by some operator.
-
-This won't do much outside of an `<expr>` mapping. Example usage:
-
-```vim
-nnoremap <expr> <LocalLeader>r nvim_exec('MagmaEvaluateOperator', v:true)
-```
-
-Upon using this mapping, you will enter operator mode, with which you will be able to select text you want to execute. You can, of course, hit ESC to cancel, as usual with operator mode.
-
-#### MagmaEvaluateArgument
-
-Evaluate the text following this command. Could be used for some automation (e. g. run something on initialization of a kernel).
-
-```vim
-:MagmaEvaluateArgument a=5;
-```
-
-#### MagmaReevaluateCell
-
-Reevaluate the currently selected cell.
-
-```vim
-:MagmaReevaluateCell
-```
-
-#### MagmaDelete
-
-Delete the currently selected cell. (If there is no selected cell, do nothing.)
-
-Example usage:
-
-```vim
-:MagmaDelete
-```
-
-#### MagmaShowOutput
-
-This only makes sense when you have `g:magma_automatically_open_output = v:false`. See [Customization](#customization).
-
-Running this command with some active cell will open the output window.
-
-Example usage:
-
-```vim
-:MagmaShowOutput
-```
-
-#### MagmaHideOutput
-
-This closes all currently open output windows
-
-Example usage:
-
-```vim
-:MagmaHideOutput
-```
-
-#### MagmaInterrupt
-
-Send a keyboard interrupt to the kernel. Interrupts the currently running cell and does nothing if not
-cell is running.
-
-Example usage:
-
-```vim
-:MagmaInterrupt
-```
-
-#### MagmaRestart
-
-Shuts down and restarts the current kernel.
-
-Optionally deletes all output if used with a bang.
-
-Example usage:
-
-```vim
-:MagmaRestart
-```
-
-Example usage (also deleting outputs):
-
-```vim
-:MagmaRestart!
-```
-
-#### MagmaSave
-
-Save the current cells and evaluated outputs into a JSON file, which can then be loaded back with [`:MagmaLoad`](#magmaload).
-
-It has two forms; first, receiving a parameter, specifying where to save to:
-
-```vim
-:MagmaSave file_to_save.json
-```
-
-If that parameter is omitted, then one will be automatically generated using the `g:magma_save_path` option.
-
-```vim
-:MagmaSave
-```
-
-#### MagmaLoad
-
-Load the cells and evaluated outputs stored in a given JSON file, which should have been generated with [`:MagmaSave`](#magmasave).
-
-Like `MagmaSave`, It has two forms; first, receiving a parameter, specifying where to save to:
-
-```vim
-:MagmaLoad file_to_load.json
-```
-
-If that parameter is omitted, then one will be automatically generated using the `g:magma_save_path` option.
-
-#### MagmaEnterOutput
-
-Configured with [magma_enter_output_behavior](#gmagma_enter_output_behavior)
-
-Enter/open the output window. You must call this as follows:
-
-```vim
-:noautocmd MagmaEnterOutput
-```
-
-This is especially useful when you have a long output (or errors) and wish to inspect it.
+### Commands Reference
+
+| Command                  | Arguments             | Description                        |
+|--------------------------|-----------------------|------------------------------------|
+| `MagmaInit`              | `[kernel]`            | Initialize a kernel for the current buffer. If no kernel is given, prompts the user|
+| `MagmaDeinit`            | none                  | De-initialize the current buffer's runtime and magma instance. (called automatically on vim close/buffer unload) |
+| `MagmaEvaluateLine`      | none                  | Evaluate the current line |
+| `MagmaEvaluateVisual`    | none                  | Evaluate the visual selection (**cannot be called with a range!**) |
+| `MagmaEvaluateOperator`  | none                  | Evaluate text selected by the following operator. see [keymaps](#keymaps) for useage |
+| `MagmaReevaluateCell`    | none                  | Re-evaluate the active cell (TODO: Does this include new code?) |
+| `MagmaDelete`            | none                  | Delete the active cell (does nothing if there is no active cell) |
+| `MagmaShowOutput`        | none                  | Shows the output window for the active cell |
+| `MagmaHideOutput`        | none                  | Hide currently open output window |
+| `MagmaInterrupt`         | none                  | Sends a keyboard interrupt to the kernel which stops any currently running code. (does nothing if there's no current output) |
+| `MagmaRestart`           | `[!]`                 | Shuts down a restarts the current kernel. Deletes all outputs if used with a bang |
+| `MagmaSave`              | `[path]`              | Save the current cells and evaluated outputs into a JSON file. When path is specified, save the file to `path`, otherwise save to `g:magma_save_path` |
+| `MagmaLoad`              | `[path]`              | Loads cell locations and output from a JSON file generated by `MagmaSave`. path functions the same as `MagmaSave` |
+| `MagmaEnterOutput`       | none                  | Move into the active cell's output window |
 
 ## Keybindings
 
-It is recommended to map all the evaluate commands to the same mapping (in different modes). For example, if we wanted to bind evaluation to `<LocalLeader>r`:
+The commands above should be mapped to keys for the best experience. There are more detailed setups
+in the Wiki, but here are some example bindings.
 
-```vim
-nnoremap <expr><silent> <LocalLeader>r  nvim_exec('MagmaEvaluateOperator', v:true)
-nnoremap <silent>       <LocalLeader>rr :MagmaEvaluateLine<CR>
-xnoremap <silent>       <LocalLeader>r  :<C-u>MagmaEvaluateVisual<CR>
-nnoremap <silent>       <LocalLeader>rc :MagmaReevaluateCell<CR>
+```lua
+vim.keymap.set("n", "<localleader>r", vim.api.nvim_exec2("MagmaEvaluateOperator", true), { expr = true, silent = true })
+vim.keymap.set("n", "<localleader>rl", ":MagmaEvaluateLine<CR>", { silent = true })
+vim.keymap.set("n", "<localleader>rc", ":MagmaReevaluateCell<CR>", { silent = true })
+vim.keymap.set("v", "<localleader>r", ":<C-u>MagmaEvaluateVisual<CR>gv", { silent = true })
 ```
 
 This way, `<LocalLeader>r` will behave just like standard keys such as `y` and `d`.
 
 You can, of course, also map other commands:
 
-```vim
-nnoremap <silent> <LocalLeader>rd :MagmaDelete<CR>
-nnoremap <silent> <LocalLeader>ro :MagmaShowOutput<CR>
-nnoremap <silent> <LocalLeader>rq :noautocmd MagmaEnterOutput<CR>
+```lua
+vim.keymap.set("n", "<localleader>rd", ":MagmaDelete<CR>", { silent = true })
+vim.keymap.set("n", "<localleader>ro", ":MagmaShowOutput<CR>", { silent = true })
+vim.keymap.set("n", "<localleader>rq", ":noautocmd MagmaEnterOutput<CR>", { silent = true })
 ```
 
 ## Customization
